@@ -1,0 +1,145 @@
+    I created this game using the Tkinter GUI library for python. The way I
+designed this game was through using two separate python files--graphics.py and
+rules.py. The graphics.py file contains all GUI information. This contains all
+code for displaying different game windows and all related functions for events
+that would change the graphics. The rules.py file contains all of the supporting
+functions for the graphics themselves. I organized the game board as a 5x10
+array, so rules.py contains many functions that will update this array, as well
+as check if the frog has been run over. The other files in the frogger folder
+are scores.txt which stores the top 5 initals and respective scores, and also
+all of the sprites and background images of the game (which are .gif files).
+    First I will explain the funcitons of rules.py, as rules.py is used in
+graphics.py:
+      -The new function simply returns a new game board. Each '_' is an
+    open space, a 'f' is the frog which you control, and a 'c' (not on the initial
+    board) is a car.
+      -The check function is a boolean that checks the current board to see if a
+    car is directly above the frog (indicating you will get run over on the next
+    'tick', which is an event keeping track of time in graphics.py). Check
+    returns True if the frog is safe, else False.
+      -The update function moves each car down one level. I organized the code
+    of this function so that it will update from the bottom of a column to the
+    top, as if you iterated the other way, stacked objects could mess with the
+    board organization. The update functioon takes not only the current board
+    as a parameter, but the number of ticks (num_ticks), which is the value
+    representing how long the player has survived. Based on the number of
+    ticks, the update function randomly adds 1 or 2 new cars every 5 ticks to
+    the top line. This is done using the randint function from the random
+    library, which I use to give randomly values from 0-4 to use as indices
+    to put cars (a 'c') into the first row of the board array. The update
+    function then returns the new_board that has all of these updates.
+      -The move_left, move_right, move_up, and move_down functions are all very
+    similar. Each takes the current board and moves the frog over one position.
+    Each funciton does not allow the frog to leave the array extreme as this
+    would violate the size of the array and produce an error (e.g. for moving
+    right, I do not include the case where the index is at the far right, AKA
+    len(row) - 1). For each movement, if there is no car in the spot the frog
+    wishes to move (AKA there is a '_'), then the spots are switched. The
+    move_up function has one exception where I do not allow the frog to go to
+    the top row, because that is where the cars spawn. Each function returns the
+    board after its respecitve change.
+      -The check_left, check_right, check_up, check_down functions are executed
+    the exact same as the move funcitons, but are booleans for whether the move
+    desired will result in the frog running into a car (and thus lose).
+      -The sort_scores function is for sorting a list of tuples that include a
+    string and an integer. In this case, the string is the user's inputed
+    initials and the string is the score. This function is used to keeping the
+    list of initials and scores in scores.txt in order based on highest to
+    lowest scores. This function takes an unsorted list of tuples, and compares
+    each score in that list, saving the highest score of all, adds that score
+    to a new list of tuples (called sorted_scores), then removes that high score
+    from the unordered list. This process is completed for the size of the
+    initial list, effectively making a sorted list of all the tuples in the
+    unordered list.
+
+    Now I will explain the design of graphics.py. Of the imports, you will see
+that I "import rules as Rules". This allows me to access all the functions in
+rules.py under an object called Rules. So, for example, I can access the new()
+function by writing 'Rules.new()'. Another thing you will notice when you first
+look at graphics.py is the fact that I put all of my code into a "start"
+function, then call the start function immediately. I do this so that when the
+game ends (or you go to the high score menu) and you want to go back to the main
+menu, the script can just exit the current window, and re-run start which
+initializes the main menu of the game. Within start, I have the start_game
+function defined (I will explain this later). Below start_game, I open the
+window for the main menu, using objects provided by the Tkinter libray. The main
+menu contains two labels, the title and the credits; and two buttons, which
+will route the user to either play the game (for the play button) or the high
+scores menu. I also define here the main menu information (which loads a string
+based on the order of lines in scores.txt). I ordered this code this way because
+the start_game function is referenced by the commands required to be defined
+within the play button. If I ordered the code the other way, I would be
+referencing start_game before it was defined and would get an error. Now, I'll
+explain the start_game function, explaining each of its steps:
+      -First, I create a canvas, which Tkinter uses to draw images on. I also
+    save the sprites here to use later.
+      -The draw function takes the board array and draws the graphic
+    representation of the board. In order that the canvas doesn't keep drawing
+    old images over and over, I must delete first all previous drawings on the
+    canvas then re-draw the new board. I tried drawing the background in a
+    separate function (to avoid deleting it and re-drawing it), but Tkinter had
+    an odd property of only letting me draw with one function. To draw each
+    sprite, I find each index of the board, and draw a frog or based on its
+    index value. The math is a bit cryptic, but was a result of playing around
+    with the numbers to situate the sprite in a 500x700 pixel board. I also
+    make the cars different colors by column value.
+      -The listener function listens for keyboard inputs from the user, and
+    then broadcasts those inputs to the key function.
+      -The key function, after receiving the '<Key>' event from the listener,
+    will first identify whether one of four arrow keys are pressed. For a given
+    arrow key, it then checks if the move is legal using the boolean
+    Rules.check_[direction], and if this boolean is true it will update the
+    board using the Rules.draw_[direction] function and then draw the graphics
+    of the new board using the local draw function.
+      -The ticker function is responsible for the timing of the game. Based on
+    how long you have been playing, the ticker will produce a '<<tick>>' event
+    after a certain amount of time. A tick event is used to refresh the board
+    and move cars down 1 row at a time (this will be explained in the update
+    funciton). The W.after function tells the window that after the specified
+    amount of milliseconds, recall ticker(), which will then produce another
+    '<<tick>>', increment num_ticks by 1, and repeat the process. Important to
+    note is that ticker runs while 'playing' is True, so when you lose the game
+    the ticker will stop.
+      -The updater function works like listener() except it takes each tick
+    produced by the ticker and tells the (local) update function to run.
+      -The update function (not to be confused with Rules.update) will first
+    call Rules.check() to see if the frog is about to get squashed. If not, then
+    the board will be updated by Rules.update and the graphics will be drawn
+    again using the draw function. If the frog is about to get squashed, then
+    the end_game function is called (will explain later).
+      -Outside all of these functions, to start the game, we set playing to
+    True, initialize num_ticks to 0, and set the board to a new board (using
+    Rules.new). We then draw this initial board and activate ticker, listener,
+    and updater. I initialize this after defining all the functions for the same
+    reason as putting the start_game function above the window settings--to
+    avoid referencing functions before they are defined.
+
+    Lastly within the start_game function is the end_game function, described
+below:
+      -First, I set playing to False, to stop the ticker and all consequent
+    gameplay activity. I then calculate the user's score based on the number of
+    ticks that occurred, increasing the multiplier for longer survival.
+      -The next part closes the game window and reopens the end game window (I
+    called it E). E has the same properties as the initial window (W) defined
+    in start(). On this new window we have two labels: the title of 'Game Over'
+    and a label that displays your score. There is also a restart button, which
+    accesses the 'erst' command defined in start() that will close the end game
+    window and re-run start()--effectively re-routing you to the main menu.
+      -The last part takes your score and updates it to scores.txt if it is in
+    the top 5. I do this by reading scores.txt and saving each line into a list
+    of tuples of (initial, score) and also keep track of the number of lines
+    in scores.txt. If there are less than 5 lines, then you know a high score
+    has been set and immediately prompt for initials with a popup window. I take
+    the new score and initial, save it as a tuple, and put it into the scores
+    list and re-sort the list using Rules.sort_scores(). Then I write the new
+    list back into scores.txt in the form of a string with
+    "[initials] [score]\n". If there are 5 lines, then I first lookup the lowest
+    score in scores.txt and compare it to the new score. If the new score is
+    greater, I remove the lowest score/initial and repeat the same process as
+    before. Doing it this way makes it so that the pop-up window only appears
+    if the user has set a new high score.
+
+    One last thing to note is that with many of my global variables, you will
+notice that I define them as global in each function that refers to them. This
+is not excessive design, as Tkinter for some reason needs to be reminded of each
+global variable whenever you reference it within a function.
